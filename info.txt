@@ -1,0 +1,40 @@
+В датасете представлены следующие столбцы:
+
+ApplicationDate: Дата подачи заявки на кредит
+Age: Возраст заявителя
+AnnualIncome: Годовой доход
+CreditScore: Оценка кредитоспособности
+LoanAmount: Запрашиваемая сумма кредита
+LoanDuration: Срок погашения кредита
+MaritalStatus: Семейное положение заявителя
+NumberOfDependents: Количество иждивенцев
+HomeOwnershipStatus: Статус владения жильем
+MonthlyDebtPayments: Ежемесячные обязательства по долгам
+CreditCardUtilizationRate: Процент использования кредитной карты
+NumberOfOpenCreditLines: Активные кредитные линии
+NumberOfCreditInquiries: Количество запросов на кредит
+DebtToIncomeRatio: Соотношение долга к доходу
+BankruptcyHistory: История банкротств
+LoanPurpose: Цель кредита
+PreviousLoanDefaults: Предыдущие дефолты по кредитам
+PaymentHistory: История платежей
+LengthOfCreditHistory: Длительность кредитной истории
+SavingsAccountBalance: Баланс сберегательного счета
+CheckingAccountBalance: Баланс расчетного счета
+TotalAssets: Общая стоимость активов
+TotalLiabilities: Общая сумма обязательств
+MonthlyIncome: Ежемесячный доход
+UtilityBillsPaymentHistory: История платежей по коммунальным услугам
+JobTenure: Длительность работы на текущем месте
+EmploymentStatus: Статус занятости
+EducationLevel: Уровень образования
+Experience: Опыт работы
+NetWorth: Чистая стоимость активов
+BaseInterestRate: Базовая процентная ставка
+InterestRate: Применяемая процентная ставка
+MonthlyLoanPayment: Ежемесячный платеж по кредиту
+TotalDebtToIncomeRatio: Общее соотношение долга к доходу
+RiskScore: Оценка риска
+▎ Файлы
+train.csv - обучающая выборка
+test.csv - тестовая выборка
