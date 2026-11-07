@@ -218,3 +218,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Игнорировать обученные модели
+models/
+*.pkl
+*.joblib
+*.h5
+
+# Игнорировать обработанные данные и предсказания
+data/processed/
+data/predictions/
