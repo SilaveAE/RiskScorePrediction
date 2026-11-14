@@ -14,7 +14,6 @@ CATEGORICAL_COLS = [
     "EducationLevel",
 ]
 
-# Идеально отфильтрованный список числовых фич БЕЗ коллинеарного взрыва
 LINEAR_NUM_COLS = [
     "Age",
     "CreditScore",
@@ -27,20 +26,22 @@ LINEAR_NUM_COLS = [
     "is_salary",
     "is_vacation",
     "is_weekend",
+    "LoanToIncomeRatio",
     "RiskPlus",
     "TotalLoanPayments",
+    "FreeMoney",
     "Income_per_person",
     "Savings_to_Income",
     "Checking_to_Income",
     "NetWorth_to_Income",
 ]
 
-def log_transformation(x):
-    return np.log1p(np.clip(x, 0, None))
+TREE_NUM_COLS = LINEAR_NUM_COLS + ['MonthlyIncome']
+
 
 def get_linear_pipeline() -> ColumnTransformer:
     """
-        Пайплайн для лин. регрессии.
+        Пайплайн препроцессинга для линейных моделей (Ridge, LogisticRegression).
     """
 
     standard_num_transformer = Pipeline(steps=[
@@ -49,7 +50,7 @@ def get_linear_pipeline() -> ColumnTransformer:
     ])
     log_num_transformer = Pipeline(steps=[
         ("imputer", SimpleImputer(strategy='median')),
-        ("log", FunctionTransformer(log_transformation)),
+        ("log", FunctionTransformer(np.log1p, feature_names_out='one-to-one')),
         ("scaler", StandardScaler()),
     ])
     cat_transformer = Pipeline(steps=[
@@ -67,7 +68,7 @@ def get_linear_pipeline() -> ColumnTransformer:
 
 def get_forest_pipeline() -> ColumnTransformer:
     """
-        Пайплайн для леса.
+        Пайплайн препроцессинга для деревянных моделей (Random Forest, CatBoost).
     """
 
     standard_num_transformer = Pipeline(steps=[
@@ -80,7 +81,7 @@ def get_forest_pipeline() -> ColumnTransformer:
     ])
 
     return ColumnTransformer(transformers=[
-        ("num", standard_num_transformer, LINEAR_NUM_COLS),
+        ("num", standard_num_transformer, TREE_NUM_COLS),
         ("cat", cat_transformer, CATEGORICAL_COLS),
     ],
     remainder="drop",

@@ -1,175 +1,129 @@
-# Credit Score
+# Credit Risk Scoring — End-to-End ML Pipeline
 
-Проект посвящен оценке кредитного риска (Credit Scoring) по данным заявок на кредит. Он обучает модели для предсказания числового `RiskScore` и бинарного класса риска (`isRisk`).
+Модульный ML-пайплайн для оценки кредитного риска по данным кредитных заявок. Проект решает две задачи:
+1. **Регрессия:** прогнозирование непрерывного скорингового балла `RiskScore` в диапазоне от `0` до `100`.
+2. **Бинарная классификация:** определение класса дефолта/высокого риска `isRisk` (`RiskScore >= 50`) и вероятности наступления риска.
+
+---
+
+## Ключевые особенности решения
+
+* **Единые пайплайны (`sklearn.pipeline.Pipeline`):** препроцессинг (импутация пропусков, логарифмирование скошенных распределений, масштабирование, One-Hot кодирование) инкапсулирован внутрь модели. Это исключает утечки данных (*data leakage*) при кросс-валидации и упрощает инференс.
+* **Единая точка входа (`main.py`):** весь цикл — от очистки сырых данных и генерации признаков до обучения 5 моделей и получения прогнозов — запускается одной CLI-командой.
+* **Feature Engineering:** созданы финансовые коэффициенты платежеспособности (`NetWorth_to_Income`, `FreeMoney`, `LoanToIncomeRatio`, `Income_per_person`, `RiskPlus`) и календарные признаки.
+* **Интерактивный веб-интерфейс (`app.py`):** приложение на Streamlit с автоматической загрузкой обученных пайплайнов, поддержкой демо-данных, загрузкой пользовательских CSV и настройкой порога отсечения риска (*Threshold*).
+
+---
 
 ## Результаты моделей
 
-Метрики получены запуском обучающих скриптов на текущих данных. Регрессионные метрики рассчитаны на валидационной части; классификатор также оценен пятифолдовой стратифицированной кросс-валидацией.
+Все метрики получены на отложенной валидационной выборке (`20%`, `random_state=42`).
 
-| Модель | Метрика | Результат |
-|---|---|---:|
-| Logistic Regression | ROC-AUC, CV по фолдам | 0.969845, 0.970911, 0.969473, 0.977115, 0.972458 |
-| Logistic Regression | Средний ROC-AUC CV (± 2 стандартных отклонения) | 0.9720 ± 0.0056 |
-| Logistic Regression | ROC-AUC на отложенной валидации | 0.9715 |
-| Logistic Regression | Accuracy на отложенной валидации | 0.91 |
-| Ridge | R² / MSE / RMSE / MAE | 0.8069517569 / 58.6933823364 / 7.6611606390 / 5.9573202428 |
-| Random Forest | R² / MSE / RMSE / MAE | 0.7803688265 / 66.7755180378 / 8.1716288485 / 6.2131719659 |
+### Задача регрессии (прогноз `RiskScore`)
 
-Classification report Logistic Regression на валидации:
-
-| Класс | Precision | Recall | F1-score | Support |
+| Модель | R² | MSE | RMSE | MAE |
 |---|---:|---:|---:|---:|
-| 0 (нет риска) | 0.92 | 0.93 | 0.92 | 1115 |
-| 1 (риск) | 0.90 | 0.89 | 0.90 | 843 |
-| Macro average | 0.91 | 0.91 | 0.91 | 1958 |
-| Weighted average | 0.91 | 0.91 | 0.91 | 1958 |
+| **CatBoost Regressor** | **0.8546** | **44.21** | **6.65** | **4.96** |
+| Random Forest Regressor | 0.8242 | 53.46 | 7.31 | 5.40 |
+| Ridge Regression (CV) | 0.8105 | 57.61 | 7.59 | 5.88 |
 
-### ROC-кривая классификатора
+### Задача классификации (прогноз `isRisk`)
 
-Кривая построена на отложенной валидационной выборке.
+| Модель | ROC-AUC (Val) | Accuracy | F1-score (Macro) |
+|---|---:|---:|---:|
+| **CatBoost Classifier** | **0.9748** | **0.91** | **0.91** |
+| Logistic Regression (5-fold CV: `0.9723 ± 0.0055`) | 0.9716 | 0.91 | 0.91 |
 
-![ROC-кривая Logistic Regression](images/roc-auc-curve.png)
+### Визуализация метрик и важности признаков
+
+#### Важность признаков (Feature Importance)
+Сгенерированные финансовые коэффициенты (`NetWorth_to_Income`, `FreeMoney`, `LoanToIncomeRatio`) вошли в топ самых значимых факторов как в градиентном бустинге, так и в линейной модели:
+
+| CatBoost Classifier | Logistic Regression (Log-Odds) |
+| :---: | :---: |
+| ![Feature Importance CatBoost](images/feature-importance-catboost.png) | ![Feature Importance LogReg](images/feature-importance-logreg.png) |
+
+#### ROC-кривая и матрица ошибок (CatBoost Classifier)
+
+| ROC-кривая | Матрица ошибок |
+| :---: | :---: |
+| ![ROC-кривая CatBoost](images/roc-auc-curve-catboost.png) | ![Confusion Matrix CatBoost](images/confusion-matrix-catboost.png) |
+
+---
 
 ## Структура проекта
 
 ```text
-config.py
-riskpred.py             # Streamlit-интерфейс для загрузки данных и предсказаний
-data/
-  raw/                 # Исходные train.csv и test.csv
-  processed/           # Очищенные данные и наборы признаков
-  predictions/
-    classification/    # Результаты классификации
-    regression/        # Результаты регрессии
-models/                # Сериализованные модели и преобразователи
-images/                # Графики, включая ROC-кривую
-notebooks/
-  eda.ipynb            # Исследовательский анализ данных
-src/
-  make_dataset.py      # Очистка исходных CSV
-  build_features.py    # Генерация признаков
-  transformer.py       # Преобразование числовых и категориальных признаков
-  train_models/
-    class_models/
-      linear.py        # Логистическая классификация
-    linear_models/
-      linear.py        # Ridge-регрессия
-      forest.py        # Random Forest-регрессия
-  test_models/
-    classification.py  # Предсказания isRisk для тестового набора
-    regression.py      # Предсказания RiskScore (Ridge или Random Forest)
+├── main.py                        # Единая CLI-точка входа (data, train, predict, all)
+├── app.py                         # Веб-приложение на Streamlit для инференса
+├── config.py                      # Конфигурация путей и удаляемых признаков
+├── requirements.txt               # Зависимости проекта
+├── data/
+│   ├── raw/                       # Исходные train.csv и test.csv
+│   ├── processed/                 # Очищенные данные и матрицы признаков (генерируются)
+│   └── predictions/               # Итоговые прогнозы моделей (генерируются)
+├── models/                        # Сохраненные sklearn Pipeline (.joblib)
+├── images/                        # Графики метрик и важности признаков
+├── notebooks/
+│   └── eda.ipynb                  # Разведочный анализ данных (EDA)
+└── src/
+    ├── make_dataset.py            # Очистка сырых данных и фильтрация выбросов
+    ├── feature_engineering.py     # Генерация финансовых и календарных признаков
+    ├── preprocessing.py           # ColumnTransformer для линейных и деревянных моделей
+    ├── predict.py                 # Единый модуль инференса и реестр моделей (MODEL_REGISTRY)
+    └── train/
+        ├── classification/
+        │   ├── log_reg.py         # Обучение LogisticRegression + 5-fold CV
+        │   └── catboost_clf.py    # Обучение CatBoostClassifier
+        └── regression/
+            ├── ridge_cv.py        # Обучение RidgeCV
+            ├── random_forest.py   # Обучение RandomForestRegressor
+            └── catboost_reg.py    # Обучение CatBoostRegressor
 ```
 
-`config.py` задает пути к `data/raw` и `data/processed` относительно корня проекта.
+---
 
-## Требования и установка
+## Установка и быстрый старт
 
-Нужен Python и `pip`. В PowerShell из корня проекта:
+### 1. Клонирование и установка зависимостей
 
 ```powershell
+git clone https://github.com
+cd RiskScorePrediction
+
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 ```
 
-Ноутбуки открывайте в Jupyter или VS Code с расширением Jupyter.
+### 2. Запуск полного ML-пайплайна
 
-## Данные
-
-Ожидаются файлы:
-
-- `data/raw/train.csv` — обучающие данные с целевым столбцом `RiskScore`;
-- `data/raw/test.csv` — данные без `RiskScore` (в имеющемся файле также есть `ID`).
-
-Входные CSV в репозитории уже присутствуют. Если заменяете или добавляете данные, сохраните ожидаемые имена файлов и совместимую схему столбцов.
-
-## Подготовка данных
-
-Запускайте команды из корня проекта:
+Выполнить весь цикл (очистка данных $\rightarrow$ генерация признаков $\rightarrow$ обучение всех моделей $\rightarrow$ сохранение прогнозов для `test.csv`):
 
 ```powershell
-python -m src.make_dataset
-python -m src.build_features
+python main.py all
 ```
 
-Первый шаг удаляет дубликаты, исключает строки без `RiskScore` и значения цели вне диапазона `[0, 100]` в обучающих данных, затем удаляет выбранные столбцы. Второй шаг создает календарные и финансовые признаки.
-
-Результаты записываются в `data/processed/`:
-
-- `train_cleaned.csv`, `test_cleaned.csv`;
-- `train_features_linear.csv`, `test_features_linear.csv`;
-- `train_features_class.csv`, `test_features_class.csv`.
-
-Для классификационной выборки `RiskScore` преобразуется в `isRisk` по порогу 50 и удаляется из признаков.
-
-## Обучение
-
-### Ridge-регрессия
+Доступен также пошаговый запуск отдельных этапов:
 
 ```powershell
-python -m src.train_models.linear_models.linear
+# 1. Очистка сырых данных и генерация признаков
+python main.py data
+
+# 2. Обучение всех моделей регрессии и классификации
+python main.py train
+
+# 3. Инференс на тестовом наборе (для всех моделей сразу или для выбранной)
+python main.py predict
+python main.py predict --task classification --model catboost
 ```
 
-Скрипт использует `train_features_linear.csv`, делает случайное разбиение на обучающую и валидационную части и печатает R², MSE, RMSE и MAE. Модель и преобразователь сохраняются в `models/ridge_model.joblib` и `models/ridge_preproc.joblib`.
+### 3. Запуск веб-приложения (Streamlit)
 
-### Логистическая классификация
+После обучения моделей запустите интерактивный интерфейс:
 
 ```powershell
-python -m src.train_models.class_models.linear
+streamlit run app.py
 ```
 
-Скрипт использует `train_features_class.csv`, оценивает ROC-AUC на пяти стратифицированных фолдах (предобработка обучается отдельно внутри каждого фолда), затем делает стратифицированное train/validation-разбиение и печатает отчет классификации и ROC-AUC. Он также показывает матрицу ошибок и ROC-кривую. График сохраняется в `images/roc-auc-curve.png`; модель и преобразователь — в `models/logistic_model.joblib` и `models/preprocessor_class.joblib`.
-
-### Random Forest-регрессия
-
-```powershell
-python -m src.train_models.linear_models.forest
-```
-
-Скрипт использует `train_features_linear.csv` и сохраняет модель и преобразователь в `models/forest_regressor.joblib` и `models/preprocessor_forest.joblib`.
-
-## Предсказания для тестового набора
-
-Сначала выполните подготовку данных и обучите соответствующую модель (см. выше). Затем, также из корня проекта, запустите один из сценариев:
-
-```powershell
-# Бинарная классификация
-python -m src.test_models.classification
-
-# Регрессия (по умолчанию Ridge)
-python -m src.test_models.regression
-```
-
-Сценарий регрессии по умолчанию использует Ridge. Чтобы выбрать Random Forest, откройте `src/test_models/regression.py` и замените в последней строке `predict_test("ridge")` на `predict_test("forest")`. Сценарии загружают признаки из `data/processed/test_features_class.csv` или `test_features_linear.csv`, преобразователь и модель из `models/`, а затем записывают результат в `data/predictions/`. Папки создаются автоматически при запуске. Если в тестовом файле есть `ID`, он сохраняется в выходном CSV:
-
-- классификация: `data/predictions/classification/test_predictions_classification.csv` с `isRisk_pred` и вероятностью класса риска `risk_probability`;
-- Ridge: `data/predictions/regression/test_predictions_ridge.csv` с предсказанием `RiskScore_pred`;
-- Random Forest: `data/predictions/regression/test_predictions_forest.csv` с предсказанием `RiskScore_pred`.
-
-Для классификации метка получается из модели, а вероятность относится к классу `1` (`isRisk`). Файл предсказаний не содержит истинные целевые значения тестовых примеров.
-
-## Streamlit-приложение для предсказаний
-
-В корне проекта находится `riskpred.py` — Streamlit-приложение для предсказания `RiskScore` на загруженных данных. Запустите его из корня проекта:
-
-```powershell
-python -m pip install streamlit
-streamlit run riskpred.py
-```
-
-В приложении загрузите три файла:
-
-- тестовые данные в формате CSV;
-- обученную модель в формате `.joblib`;
-- соответствующий модели препроцессор в формате `.joblib`.
-
-После загрузки всех трех файлов приложение автоматически применит препроцессор к данным и рассчитает предсказания моделью. Если в CSV есть столбец `ID`, он будет сохранен в результатах; для предсказания он не используется. Результаты отображаются в приложении, а кнопка **«Скачать предсказания в CSV»** выгружает файл `risk_predictions.csv` со столбцом `RiskScore` и, при наличии исходного `ID`, также со столбцом `ID`.
-
-## Ноутбуки
-
-- `notebooks/eda.ipynb` содержит исследовательский анализ и использует `seaborn`.
-
-
-## Состав зависимостей
-
-Список прямых зависимостей проекта и ноутбука находится в [requirements.txt](requirements.txt).
+В боковой панели можно выбрать задачу (**Классификация** или **Регрессия**), модель (`catboost`, `random_forest`, `ridge_cv`, `log_reg`), настроить порог классификации (*Threshold*), протестировать работу на встроенном демо-наборе или загрузить собственный CSV-файл и скачать готовые предсказания.

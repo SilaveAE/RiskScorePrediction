@@ -228,3 +228,4 @@ models/
 # Игнорировать обработанные данные и предсказания
 data/processed/
 data/predictions/
+catboost_info/
