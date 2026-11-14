@@ -88,7 +88,7 @@
 ### 1. Клонирование и установка зависимостей
 
 ```powershell
-git clone https://github.com
+git clone https://github.com/SilaveAE/RiskScorePrediction
 cd RiskScorePrediction
 
 py -m venv .venv
